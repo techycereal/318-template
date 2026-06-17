@@ -59,7 +59,7 @@ export default function WhatToExpect() {
                 );
             },
             // Your vertical walkthrough arrival video frame
-            video: '/parking.mp4',
+            video: '/ArrivalParking.mp4',
             imgSize: 'aspect-[9/16]',
             thumbnail: '/thumbnail.png'
         },

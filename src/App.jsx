@@ -40,7 +40,7 @@ export default function App() {
     },
     {
       title: "Kids",
-      items: ["Family Integrated", "Who's it for?", "Live Service"],
+      items: ["Worshiping Together as a Family", "Comfort for Moms & Little Ones", "Never Miss a Moment"],
       text: 'Learn how we love and serve your kids every Sunday. Jesus loves the children and so do we.',
       img: 'churchImages/Kids.webp',
       path: '/about'
