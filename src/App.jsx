@@ -250,19 +250,6 @@ export default function App() {
           ))}
         </div>
       </section>
-
-      {/* Verse Section */}
-      <section id="memory-verse" className="py-24 bg-white relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#7bb0e0] to-transparent" />
-        <div className="max-w-3xl mx-auto text-center px-6">
-          <h2 className="text-[#7bb0e0] font-bold tracking-widest uppercase text-sm mb-6">Verse of the Month</h2>
-          <blockquote className="text-2xl md:text-4xl font-serif text-gray-800 leading-relaxed">
-            "For Christ also suffered once for sins, the righteous for the unrighteous, to bring you to God." - 1 Peter 3:18
-          </blockquote>
-          <div className="mt-8 w-12 h-1 bg-gray-200 mx-auto" />
-        </div>
-      </section>
-
       {/* NEW DYNAMIC RESOURCES SECTION */}
       <section id="resources" className="py-24 bg-slate-100 border-t border-gray-200">
         <div className="max-w-6xl mx-auto px-6">

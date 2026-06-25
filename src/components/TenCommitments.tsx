@@ -13,7 +13,7 @@ export default function TenCommitments() {
         },
         {
             num: "02",
-            title: "Intimacy & Church Planting",
+            title: "Intimacy",
             text: "3:18 Bible Church is committed to intimacy...a body of believers that live out the \"one another's\" of the New Testament.",
             extra: "To uphold this commitment, the Lord's Day gathering should not exceed 400. To prevent attendance from exceeding this capacity, the Elders should anticipate and prepare to plant additional local churches."
         },
@@ -43,7 +43,7 @@ export default function TenCommitments() {
         },
         {
             num: "07",
-            title: "Proportional Shepherding",
+            title: "Intentional Shepherding",
             text: "3:18 Bible Church is committed to having one elder per ten member families and one deacon per twenty member families.",
             extra: "Each member shall be assigned to a specific elder group and deacon group to ensure that adequate pastoral care/shepherding is provided to all."
         },

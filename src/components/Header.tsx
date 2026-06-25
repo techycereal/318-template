@@ -9,24 +9,23 @@ export default function Header() {
     const navItems = [
         { name: "About Us", path: "/about" },
         { name: "What to Expect", path: "/expect" },
-        { name: "Kids", path: "/kids" },
         { name: "Ten Commitments", path: "/commitments" },
-        { name: "Memory Verse", path: "/" },
+        { name: "Resources", path: "/" },
         { name: "Contact", path: "/expect" },
     ];
 
     const handleNavigation = (item: { name: string; path: string }) => {
-        if (item.name === "Memory Verse") {
+        if (item.name === "Resources") {
             if (location.pathname !== "/") {
                 navigate("/");
                 setTimeout(() => {
                     document
-                        .getElementById("memory-verse")
+                        .getElementById("resources")
                         ?.scrollIntoView({ behavior: "smooth" });
                 }, 100);
             } else {
                 document
-                    .getElementById("memory-verse")
+                    .getElementById("resources")
                     ?.scrollIntoView({ behavior: "smooth" });
             }
         } else if (item.name === "Contact") {
