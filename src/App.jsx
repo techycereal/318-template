@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import Header from "./components/Header";
-
+import axios from "axios";
 // Firebase Imports
 import { storage } from "./firebase"; 
 import { ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
+
 export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [userCode, setUserCode] = useState('');
+  const [videoData, setVideoData] = useState(null); // Stores { title, url, embedId }
+  const [videoError, setVideoError] = useState('');
   const navigate = useNavigate();
 
   // --- Contact Form State ---
@@ -17,6 +21,40 @@ export default function App() {
   // --- Firebase Resources State ---
   const [resources, setResources] = useState([]);
   const [isLoadingResources, setIsLoadingResources] = useState(true);
+
+  // Modified to use the userCode state and accept an explicit code from the UI
+  const getVideo = async (e) => {
+    if (e) e.preventDefault();
+    if (!userCode.trim()) {
+      setVideoError("Please enter a valid code.");
+      return;
+    }
+
+    setVideoError('');
+    try {
+      // Passing userCode as a query parameter (or change to POST body if your backend requires it)
+      const response = await axios.post(
+        `https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net/get-latest-live`, {userCode}
+      );
+      
+      const data = response.data;
+      if (data && data.url) {
+        // Extract the YouTube ID from the URL string
+        const videoIdMatch = data.url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^& \n]+)/);
+        const embedId = videoIdMatch ? videoIdMatch[1] : null;
+
+        setVideoData({
+          title: data.title,
+          url: data.url,
+          embedId: embedId
+        });
+      }
+    } catch(err) {
+      console.error(err);
+      setVideoError("Failed to fetch stream data. Verify your code.");
+      setVideoData(null);
+    }
+  }
 
   const heroSlides = [
     { img: 'churchImages/churchInside.webp', text: "Seeing and Savoring Jesus Christ" },
@@ -49,68 +87,60 @@ export default function App() {
   ];
 
   useEffect(() => {
-  const fetchPDFs = async () => {
-    try {
-      const listRef = ref(storage, "pdfs"); 
-      const res = await listAll(listRef);
-      
-      const today = new Date();
-      const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
-      
-      // 1. Calculate how many days to look back to reach Monday
-      const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
-      
-      const startOfMonday = new Date(today);
-      startOfMonday.setDate(today.getDate() - daysSinceMonday);
-      startOfMonday.setHours(0, 0, 0, 0);
+    const fetchPDFs = async () => {
+      try {
+        const listRef = ref(storage, "pdfs"); 
+        const res = await listAll(listRef);
+        
+        const today = new Date();
+        const currentDay = today.getDay(); 
+        
+        const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
+        
+        const startOfMonday = new Date(today);
+        startOfMonday.setDate(today.getDate() - daysSinceMonday);
+        startOfMonday.setHours(0, 0, 0, 0);
 
-      // 2. Determine the maximum allowed day number to display today
-      // If it's Saturday (6) or Sunday (0), we want to show all days (up to Day 5)
-      const maxAllowedDay = (currentDay === 0 || currentDay === 6) ? 5 : currentDay;
+        const maxAllowedDay = (currentDay === 0 || currentDay === 6) ? 5 : currentDay;
 
-      const filePromises = res.items.map(async (itemRef) => {
-        const url = await getDownloadURL(itemRef);
-        const metadata = await getMetadata(itemRef);
-        const createdDate = new Date(metadata.timeCreated);
+        const filePromises = res.items.map(async (itemRef) => {
+          const url = await getDownloadURL(itemRef);
+          const metadata = await getMetadata(itemRef);
+          const createdDate = new Date(metadata.timeCreated);
 
-        const nameLower = itemRef.name.toLowerCase();
-        const match = nameLower.match(/day_(\d+)/);
-        const dayNumber = match ? parseInt(match[1], 10) : 999; 
+          const nameLower = itemRef.name.toLowerCase();
+          const match = nameLower.match(/day_(\d+)/);
+          const dayNumber = match ? parseInt(match[1], 10) : 999; 
 
-        const displayName = itemRef.name.replace(".pdf", "").replace(/[_-]/g, " ");
+          const displayName = itemRef.name.replace(".pdf", "").replace(/[_-]/g, " ");
 
-        return {
-          name: displayName,
-          url: url,
-          timeCreated: createdDate,
-          dayNumber: dayNumber
-        };
-      });
+          return {
+            name: displayName,
+            url: url,
+            timeCreated: createdDate,
+            dayNumber: dayNumber
+          };
+        });
 
-      const allFiles = await Promise.all(filePromises);
+        const allFiles = await Promise.all(filePromises);
 
-      // 3. Strict Filter: 
-      //    - Must be uploaded on/after Monday of this week
-      //    - File's day number must be less than or equal to today's weekday value
-      const visibleFiles = allFiles.filter(file => {
-        const isThisWeek = file.timeCreated >= startOfMonday;
-        const isNotFutureDay = file.dayNumber <= maxAllowedDay;
-        return isThisWeek && isNotFutureDay;
-      });
+        const visibleFiles = allFiles.filter(file => {
+          const isThisWeek = file.timeCreated >= startOfMonday;
+          const isNotFutureDay = file.dayNumber <= maxAllowedDay;
+          return isThisWeek && isNotFutureDay;
+        });
 
-      // 4. Sort numerically by Day Number
-      visibleFiles.sort((a, b) => a.dayNumber - b.dayNumber);
+        visibleFiles.sort((a, b) => a.dayNumber - b.dayNumber);
+        setResources(visibleFiles);
+      } catch (error) {
+        console.error("Error fetching documents from Firebase Storage:", error);
+      } finally {
+        setIsLoadingResources(false);
+      }
+    };
 
-      setResources(visibleFiles);
-    } catch (error) {
-      console.error("Error fetching documents from Firebase Storage:", error);
-    } finally {
-      setIsLoadingResources(false);
-    }
-  };
-
-  fetchPDFs();
-}, []);
+    fetchPDFs();
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -250,57 +280,98 @@ export default function App() {
           ))}
         </div>
       </section>
+
       {/* NEW DYNAMIC RESOURCES SECTION */}
       <section id="resources" className="py-24 bg-slate-100 border-t border-gray-200">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-[#7bb0e0] font-bold tracking-widest uppercase text-sm mb-3">Downloads & Guides</h2>
-            <h3 className="text-3xl font-extrabold text-gray-800 tracking-tight">Church Resources</h3>
+            <h3 className="text-3xl font-extrabold text-gray-800 tracking-tight mb-6">Church Resources</h3>
+            
+            {/* NEW CODE INPUT & VIDEO PLAYER INTERFACE */}
+            <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-8">
+              <h4 className="font-bold text-gray-700 mb-2 text-sm uppercase tracking-wide">Live Stream Access</h4>
+              <form onSubmit={getVideo} className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Enter access code..." 
+                  value={userCode}
+                  onChange={(e) => setUserCode(e.target.value)}
+                  className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:border-[#7bb0e0]"
+                />
+                <button type="submit" className="text-white bg-[#7bb0e0] hover:bg-[#5a8dbd] font-bold px-4 py-2 rounded-lg transition-colors">
+                  Watch Live
+                </button>
+              </form>
+              {videoError && <p className="text-red-500 text-xs mt-2 font-medium">{videoError}</p>}
+            </div>
+
+            {/* VIDEO PLAYER COMPONENT */}
+            {videoData && (
+              <div className="max-w-3xl mx-auto bg-white p-4 rounded-xl shadow-lg border border-gray-100 mb-12 text-left">
+                <h3 className="text-xl font-bold text-gray-800 mb-3">{videoData.title}</h3>
+                {videoData.embedId ? (
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-inner bg-black">
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full"
+                      src={`https://www.youtube.com/embed/${videoData.embedId}`}
+                      title={videoData.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    Could not load player. <a href={videoData.url} target="_blank" rel="noreferrer" className="text-blue-500 underline">Click here to watch on YouTube</a>.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {isLoadingResources ? (
-  <div className="flex justify-center items-center h-32">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7bb0e0]"></div>
-  </div>
-) : resources.length === 0 ? (
-  // This automatically displays if 0 files have been uploaded since Sunday
-  <p className="text-center text-gray-500 italic py-8">
-    No new resources have been posted for this week yet.
-  </p>
-) : (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-    {resources.map((resource, index) => (
-      <a
-        key={index}
-        href={resource.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center justify-between hover:shadow-xl hover:border-[#7bb0e0] transition-all duration-300 group"
-      >
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-red-50 text-red-500 rounded-lg group-hover:bg-red-500 group-hover:text-white transition-colors duration-300">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <div>
-            <h4 className="font-bold text-gray-800 capitalize leading-snug group-hover:text-[#7bb0e0] transition-colors">
-              {resource.name}
-            </h4>
-            <p className="text-xs text-gray-400 font-mono mt-0.5">
-              Published {resource.timeCreated.toLocaleDateString()}
+            <div className="flex justify-center items-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7bb0e0]"></div>
+            </div>
+          ) : resources.length === 0 ? (
+            <p className="text-center text-gray-500 italic py-8">
+              No new resources have been posted for this week yet.
             </p>
-          </div>
-        </div>
-        <div className="text-gray-400 group-hover:text-[#7bb0e0] transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-        </div>
-      </a>
-    ))}
-  </div>
-)}
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {resources.map((resource, index) => (
+                <a
+                  key={index}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center justify-between hover:shadow-xl hover:border-[#7bb0e0] transition-all duration-300 group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-red-50 text-red-500 rounded-lg group-hover:bg-red-500 group-hover:text-white transition-colors duration-300">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-800 capitalize leading-snug group-hover:text-[#7bb0e0] transition-colors">
+                        {resource.name}
+                      </h4>
+                      <p className="text-xs text-gray-400 font-mono mt-0.5">
+                        Published {resource.timeCreated.toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-gray-400 group-hover:text-[#7bb0e0] transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
