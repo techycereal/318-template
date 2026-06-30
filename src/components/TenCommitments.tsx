@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import Header from "./Header";
+import Footer from "./Footer";
 
 export default function TenCommitments() {
     const navigate = useNavigate();
@@ -141,6 +142,7 @@ export default function TenCommitments() {
                     <p className="text-[#7bb0e0] font-bold tracking-widest uppercase text-xs mt-4">— 1 Peter 3:18</p>
                 </div>
             </section>
+            <Footer />
         </div>
     );
 }

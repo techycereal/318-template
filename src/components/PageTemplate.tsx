@@ -1,6 +1,7 @@
 import React, { ReactNode } from "react";
 import ContentSection from "./ContentSection";
 import Header from "./Header";
+import Footer from "./Footer";
 
 // Added optional video string to the typing data contract
 interface SectionData {
@@ -73,6 +74,7 @@ const PageTemplate: React.FC<PageTemplateProps> = ({
             </main>
 
             <div className="h-20 bg-[#1a1a1a]" />
+            <Footer />
         </div>
     );
 };

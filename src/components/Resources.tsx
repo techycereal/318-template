@@ -1,3 +1,4 @@
+import Footer from "./Footer";
 import Header from "./Header";
 import { useNavigate } from "react-router";
 
@@ -100,7 +101,7 @@ export default function Resources() {
             </main>
 
             {/* Footer Spacer */}
-            <div className="h-24 bg-[#1a1a1a]" />
+            <Footer />
         </div>
     );
 }

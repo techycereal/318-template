@@ -5,6 +5,7 @@ import axios from "axios";
 // Firebase Imports
 import { storage } from "./firebase"; 
 import { ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
+import Footer from "./components/Footer";
 
 export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -283,29 +284,29 @@ export default function App() {
         </div>
       </section>
 
-      {/* NEW DYNAMIC RESOURCES SECTION */}
+      {/* IMPROVED RESPONSIVE RESOURCES & WATCH LIVE SECTION */}
       <section id="resources" className="py-24 bg-slate-100 border-t border-gray-200">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-[#7bb0e0] font-bold tracking-widest uppercase text-sm mb-3">Downloads & Guides</h2>
             <h3 className="text-3xl font-extrabold text-gray-800 tracking-tight mb-6">Church Resources</h3>
             
-            {/* NEW CODE INPUT & VIDEO PLAYER INTERFACE */}
-            <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-8">
-              <h4 className="font-bold text-gray-700 mb-2 text-sm uppercase tracking-wide">Live Stream Access</h4>
-              <form onSubmit={getVideo} className="flex gap-2">
+            {/* RESPONSIVE CODE INPUT INTERFACE */}
+            <div className="max-w-md mx-auto bg-white p-5 sm:p-6 rounded-xl shadow-md border border-gray-100 mb-8">
+              <h4 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide">Live Stream Access</h4>
+              <form onSubmit={getVideo} className="flex flex-col sm:flex-row gap-2.5">
                 <input 
                   type="text" 
                   placeholder="Enter access code..." 
                   value={userCode}
                   onChange={(e) => setUserCode(e.target.value)}
                   disabled={isFetchingVideo}
-                  className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:border-[#7bb0e0] disabled:bg-gray-100 disabled:text-gray-400"
+                  className="w-full flex-grow px-4 py-2.5 border rounded-lg focus:outline-none focus:border-[#7bb0e0] disabled:bg-gray-100 disabled:text-gray-400 text-sm sm:text-base"
                 />
                 <button 
                   type="submit" 
                   disabled={isFetchingVideo}
-                  className="text-white bg-[#7bb0e0] hover:bg-[#5a8dbd] font-bold px-4 py-2 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center min-w-[110px]"
+                  className="w-full sm:w-auto text-white bg-[#7bb0e0] hover:bg-[#5a8dbd] font-bold px-5 py-2.5 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center min-w-[110px] text-sm sm:text-base h-11 sm:h-auto"
                 >
                   {isFetchingVideo ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -314,19 +315,19 @@ export default function App() {
                   )}
                 </button>
               </form>
-              {videoError && <p className="text-red-500 text-xs mt-2 font-medium">{videoError}</p>}
+              {videoError && <p className="text-red-500 text-xs mt-2.5 font-medium text-left sm:text-center">{videoError}</p>}
             </div>
 
             {/* VIDEO PLAYER COMPONENT WITH LOADING TRANSITION */}
             {isFetchingVideo ? (
-              <div className="flex flex-col justify-center items-center h-48 max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 mb-12">
+              <div className="flex flex-col justify-center items-center h-48 max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 mb-12 px-4">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#7bb0e0] mb-3"></div>
-                <p className="text-sm text-gray-500 font-medium">Fetching live stream broadcast...</p>
+                <p className="text-sm text-gray-500 font-medium text-center">Fetching live stream broadcast...</p>
               </div>
             ) : (
               videoData && (
-                <div className="max-w-3xl mx-auto bg-white p-4 rounded-xl shadow-lg border border-gray-100 mb-12 text-left">
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">{videoData.title}</h3>
+                <div className="max-w-3xl mx-auto bg-white p-3 sm:p-4 rounded-xl shadow-lg border border-gray-100 mb-12 text-left">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 px-1">{videoData.title}</h3>
                   {videoData.embedId ? (
                     <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-inner bg-black">
                       <iframe
@@ -339,7 +340,7 @@ export default function App() {
                       ></iframe>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 p-1">
                       Could not load player. <a href={videoData.url} target="_blank" rel="noreferrer" className="text-blue-500 underline">Click here to watch on YouTube</a>.
                     </p>
                   )}
@@ -357,31 +358,31 @@ export default function App() {
               No new resources have been posted for this week yet.
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {resources.map((resource, index) => (
                 <a
                   key={index}
                   href={resource.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center justify-between hover:shadow-xl hover:border-[#7bb0e0] transition-all duration-300 group"
+                  className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100 flex items-center justify-between hover:shadow-xl hover:border-[#7bb0e0] transition-all duration-300 group min-w-0"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-red-50 text-red-500 rounded-lg group-hover:bg-red-500 group-hover:text-white transition-colors duration-300">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 mr-2">
+                    <div className="p-3 bg-red-50 text-red-500 rounded-lg group-hover:bg-red-500 group-hover:text-white transition-colors duration-300 flex-shrink-0">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-gray-800 capitalize leading-snug group-hover:text-[#7bb0e0] transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-gray-800 capitalize leading-snug group-hover:text-[#7bb0e0] transition-colors truncate text-sm sm:text-base">
                         {resource.name}
                       </h4>
-                      <p className="text-xs text-gray-400 font-mono mt-0.5">
+                      <p className="text-[11px] sm:text-xs text-gray-400 font-mono mt-0.5">
                         Published {resource.timeCreated.toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <div className="text-gray-400 group-hover:text-[#7bb0e0] transition-colors">
+                  <div className="text-gray-400 group-hover:text-[#7bb0e0] transition-colors flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -446,6 +447,7 @@ export default function App() {
           </form>
         </div>
       </section>
+      <Footer/>
     </div>
   );
 }
