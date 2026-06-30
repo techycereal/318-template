@@ -9,7 +9,7 @@ export default function WhatToExpect() {
                 return (
                     <div className="space-y-6">
                         <p className="font-semibold text-gray-900 text-lg">
-                            Our services are typically about 60 minutes long and focus closely on the corporate worship of God. Here is what we do:
+                            Our services are typically about 75 minutes long and focus closely on the corporate worship of God. Here is what we do:
                         </p>
                         <ul className="space-y-3 list-none pl-0">
                             <li><strong className="font-bold text-gray-900">Singing:</strong> We praise God and encourage each other with gospel-centered songs.</li>
@@ -26,7 +26,7 @@ export default function WhatToExpect() {
         },
         {
             title: "Sunday Fellowship Meal",
-            time: "Sundays at 12:00 PM",
+            time: "Sundays at 12:15 PM",
             Description: () => {
                 return (
                     <div className="space-y-4">
@@ -37,6 +37,7 @@ export default function WhatToExpect() {
                             <li><strong className="font-bold text-gray-900">Weekly Gathering:</strong> We come together every single Sunday right after the service to share an open meal.</li>
                             <li><strong className="font-bold text-gray-900">Building Relationships:</strong> Eating unhurried meals allows organic friendships to grow, burdens to be shared, and encouragement to flow naturally.</li>
                             <li><strong className="font-bold text-gray-900">Hospitality & Welcome:</strong> The lunch table is where newcomers are embraced, questions are discussed, and church becomes family.</li>
+                            <li><strong className="font-bold text-gray-900">Fun & Fellowship:</strong> It's a joyful environment for all ages—while the adults connect, the kids have a great time playing basketball and shuffleboard together.</li>
                         </ul>
                     </div>
                 );

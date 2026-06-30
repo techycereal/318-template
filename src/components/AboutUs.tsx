@@ -6,11 +6,14 @@ export default function AboutUs() {
             title: "Who We Are",
             Description: () => (
                 <div className="space-y-4">
-                    <p>
-                        3:18 Bible Church is an intimate, family-integrated body of believers dedicated to living out the "one anothers" of the New Testament. We are a community that prioritizes radical hospitality, deep fellowship, and intentional discipleship, walking alongside one another to help each person see and savor Jesus as the greatest, highest treasure in all of life.
+                    <p className="italic font-semibold text-lg border-l-4 border-slate-500 pl-4 my-2">
+                        3:18 Bible Church exists as a fellowship of believers to see and savor Jesus Christ the King, while we serve one another in love, and share His Gospel with the world until He returns for His own.
                     </p>
                     <p>
-                        To guard our close-knit fellowship and keep our collective focus on seeing and savoring Jesus, our leadership focuses on cultivation rather than building a mega-church. This ensures that every individual and family is closely known, loved, and shepherded in their walk with Christ.
+                        Jesus Christ is the ultimate treasure and focus of our community. 3:18 Bible Church is an intimate, family-integrated body of believers dedicated to living out the "one anothers" of the New Testament. We prioritize radical hospitality, deep fellowship, and intentional discipleship, walking alongside one another to help each person see and savor Him as the greatest, highest treasure in all of life.
+                    </p>
+                    <p>
+                        Because we prioritize intentional discipleship, we provide focused discipleship resources and actively pour into our families so they can see and savor Jesus. To guard our close-knit fellowship, our leadership focuses on cultivation rather than building a mega-church, ensuring that every individual and family is closely known, loved, and shepherded in their walk with Christ.
                     </p>
                 </div>
             ),
@@ -24,12 +27,29 @@ export default function AboutUs() {
                     <p>
                         We believe in the absolute authority of God's Word, which is why we are unwaveringly committed to verse-by-verse expository preaching. Every sermon is designed to display the glory of God's truth so that this local body can clearly see and savor Jesus and be built up in mature faith. Standing on this truth, we remain unapologetically pro-life, pro-marriage, and pro-family.
                     </p>
-                    <p>
-                        We also believe in absolute structural integrity to protect the purity of this ministry. To ensure our resources are dedicated to pointing people to Christ, no more than 25% of our annual income goes toward pastoral compensation. Our elders maintain bi-vocational careers to protect the pulpit from compromise, keeping our primary aim entirely focused on helping the church see and savor Jesus.
-                    </p>
                 </div>
             ),
             image: '/churchImages/bible.webp',
+            imgSize: 'aspect-[16/9]',
+        },
+        {
+            title: "Monthly Events",
+            Description: () => (
+                <div className="space-y-4">
+                    <p>
+                        We place a massive priority on the family because we believe it is foundational to a healthy, thriving church body. Families are deeply important to us, which is why we intentionally design regular gatherings to pour directly into your home, build up your relationships, and support parents:
+                    </p>
+                    <ul className="space-y-3 list-disc pl-5">
+                        <li>
+                            <strong>Family Night:</strong> Once a month, we gather as a complete church family for a really fun night filled with games, a shared meal, deep fellowship, and a chance to build up our community together.
+                        </li>
+                        <li>
+                            <strong>Married Couples' Date Night:</strong> To support and pour into marriages, we host a dedicated monthly date night. Parents can drop their children off at the church to be safely cared for, while the couples receive a focused devotional to go through together and real cash from the church to go out and enjoy quality time investing in their marriage.
+                        </li>
+                    </ul>
+                </div>
+            ),
+            image: '/churchImages/IMG_4309.jpg',
             imgSize: 'aspect-[16/9]',
         },
         {
