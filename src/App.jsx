@@ -11,6 +11,7 @@ export default function App() {
   const [userCode, setUserCode] = useState('');
   const [videoData, setVideoData] = useState(null); // Stores { title, url, embedId }
   const [videoError, setVideoError] = useState('');
+  const [isFetchingVideo, setIsFetchingVideo] = useState(false); // Added video loading state
   const navigate = useNavigate();
 
   // --- Contact Form State ---
@@ -22,7 +23,7 @@ export default function App() {
   const [resources, setResources] = useState([]);
   const [isLoadingResources, setIsLoadingResources] = useState(true);
 
-  // Modified to use the userCode state and accept an explicit code from the UI
+  // Modified to track video fetching progression state status
   const getVideo = async (e) => {
     if (e) e.preventDefault();
     if (!userCode.trim()) {
@@ -31,15 +32,14 @@ export default function App() {
     }
 
     setVideoError('');
+    setIsFetchingVideo(true); // Turn loading on
     try {
-      // Passing userCode as a query parameter (or change to POST body if your backend requires it)
       const response = await axios.post(
-        `https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net/get-latest-live`, {userCode}
+        `https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net/get-latest-live`, { userCode }
       );
       
       const data = response.data;
       if (data && data.url) {
-        // Extract the YouTube ID from the URL string
         const videoIdMatch = data.url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^& \n]+)/);
         const embedId = videoIdMatch ? videoIdMatch[1] : null;
 
@@ -53,6 +53,8 @@ export default function App() {
       console.error(err);
       setVideoError("Failed to fetch stream data. Verify your code.");
       setVideoData(null);
+    } finally {
+      setIsFetchingVideo(false); // Turn loading off when network request finishes
     }
   }
 
@@ -297,36 +299,52 @@ export default function App() {
                   placeholder="Enter access code..." 
                   value={userCode}
                   onChange={(e) => setUserCode(e.target.value)}
-                  className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:border-[#7bb0e0]"
+                  disabled={isFetchingVideo}
+                  className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:border-[#7bb0e0] disabled:bg-gray-100 disabled:text-gray-400"
                 />
-                <button type="submit" className="text-white bg-[#7bb0e0] hover:bg-[#5a8dbd] font-bold px-4 py-2 rounded-lg transition-colors">
-                  Watch Live
+                <button 
+                  type="submit" 
+                  disabled={isFetchingVideo}
+                  className="text-white bg-[#7bb0e0] hover:bg-[#5a8dbd] font-bold px-4 py-2 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center min-w-[110px]"
+                >
+                  {isFetchingVideo ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : (
+                    "Watch Live"
+                  )}
                 </button>
               </form>
               {videoError && <p className="text-red-500 text-xs mt-2 font-medium">{videoError}</p>}
             </div>
 
-            {/* VIDEO PLAYER COMPONENT */}
-            {videoData && (
-              <div className="max-w-3xl mx-auto bg-white p-4 rounded-xl shadow-lg border border-gray-100 mb-12 text-left">
-                <h3 className="text-xl font-bold text-gray-800 mb-3">{videoData.title}</h3>
-                {videoData.embedId ? (
-                  <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-inner bg-black">
-                    <iframe
-                      className="absolute top-0 left-0 w-full h-full"
-                      src={`https://www.youtube.com/embed/${videoData.embedId}`}
-                      title={videoData.title}
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">
-                    Could not load player. <a href={videoData.url} target="_blank" rel="noreferrer" className="text-blue-500 underline">Click here to watch on YouTube</a>.
-                  </p>
-                )}
+            {/* VIDEO PLAYER COMPONENT WITH LOADING TRANSITION */}
+            {isFetchingVideo ? (
+              <div className="flex flex-col justify-center items-center h-48 max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 mb-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#7bb0e0] mb-3"></div>
+                <p className="text-sm text-gray-500 font-medium">Fetching live stream broadcast...</p>
               </div>
+            ) : (
+              videoData && (
+                <div className="max-w-3xl mx-auto bg-white p-4 rounded-xl shadow-lg border border-gray-100 mb-12 text-left">
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">{videoData.title}</h3>
+                  {videoData.embedId ? (
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-inner bg-black">
+                      <iframe
+                        className="absolute top-0 left-0 w-full h-full"
+                        src={`https://www.youtube.com/embed/${videoData.embedId}`}
+                        title={videoData.title}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Could not load player. <a href={videoData.url} target="_blank" rel="noreferrer" className="text-blue-500 underline">Click here to watch on YouTube</a>.
+                    </p>
+                  )}
+                </div>
+              )
             )}
           </div>
 
