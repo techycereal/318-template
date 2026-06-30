@@ -377,9 +377,6 @@ export default function App() {
                       <h4 className="font-bold text-gray-800 capitalize leading-snug group-hover:text-[#7bb0e0] transition-colors truncate text-sm sm:text-base">
                         {resource.name}
                       </h4>
-                      <p className="text-[11px] sm:text-xs text-gray-400 font-mono mt-0.5">
-                        Published {resource.timeCreated.toLocaleDateString()}
-                      </p>
                     </div>
                   </div>
                   <div className="text-gray-400 group-hover:text-[#7bb0e0] transition-colors flex-shrink-0">
