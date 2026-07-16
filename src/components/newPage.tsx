@@ -15,7 +15,7 @@ export default function WhatToExpect() {
                             <li><strong className="font-bold text-gray-900">Singing:</strong> We praise God and encourage each other with gospel-centered songs.</li>
                             <li><strong className="font-bold text-gray-900">Scripture Reading:</strong> We love the Bible, so we stand together to read the text we're studying.</li>
                             <li><strong className="font-bold text-gray-900">Preaching:</strong> We preach the unchanging truth of Scripture and seek to apply the Gospel directly to our lives.</li>
-                            <li><strong className="font-bold text-gray-900">Communion:</strong> We celebrate the Lord’s Supper weekly as a regular reminder of Jesus’ life, death, and substitutionary sacrifice for our sins.</li>
+                            <li><strong className="font-bold text-gray-900">Communion:</strong> We celebrate the Lord’s Supper regularly reminder of Jesus’ life, death, and substitutionary sacrifice for our sins.</li>
                             <li><strong className="font-bold text-gray-900">Giving:</strong> We give back as a joyful response to God’s grace to extend our church’s reach into our community.</li>
                         </ul>
                     </div>
