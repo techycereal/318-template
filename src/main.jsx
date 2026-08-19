@@ -12,7 +12,7 @@ import Privacy from './components/Privacy.js'
 import Terms from './components/Terms.js'
 import Support from './components/Support.js'
 import DailyDevotional from './components/Devotional.js'
-
+import PlaylistPage from './components/PlaylistPage.jsx'
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <ScrollToTop /> {/* 👈 Add this here */}
@@ -28,6 +28,7 @@ createRoot(document.getElementById('root')).render(
       <Route path='/terms' element={<Terms />} />
       <Route path='/support' element={<Support />} />
       <Route path='/devotional' element={<DailyDevotional />} />
+      <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
     </Routes>
 
   </BrowserRouter>
