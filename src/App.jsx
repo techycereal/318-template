@@ -6,14 +6,24 @@ import axios from "axios";
 import { storage } from "./firebase"; 
 import { ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
 import Footer from "./components/Footer";
+import HlsPlayer from "./components/HlsPlayer";
+// Define your hardcoded access code here
+const HARDCODED_ACCESS_CODE = "31800";
 
 export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [userCode, setUserCode] = useState('');
-  const [videoData, setVideoData] = useState(null); // Stores { title, url, embedId }
+  const [videoData, setVideoData] = useState(null); // Active video in player { title, url, embedId }
+  const [liveVideoData, setLiveVideoData] = useState(null); // Permanently caches the live stream info
   const [videoError, setVideoError] = useState('');
-  const [isFetchingVideo, setIsFetchingVideo] = useState(false); // Added video loading state
+  const [isFetchingVideo, setIsFetchingVideo] = useState(false); 
   const navigate = useNavigate();
+
+  // --- Playlists & Archive States ---
+  const [playlists, setPlaylists] = useState([]);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
+  const [playlistVideos, setPlaylistVideos] = useState([]);
+  const [isFetchingPlaylists, setIsFetchingPlaylists] = useState(false);
 
   // --- Contact Form State ---
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
@@ -24,40 +34,114 @@ export default function App() {
   const [resources, setResources] = useState([]);
   const [isLoadingResources, setIsLoadingResources] = useState(true);
 
-  // Modified to track video fetching progression state status
-  const getVideo = async (e) => {
-    if (e) e.preventDefault();
-    if (!userCode.trim()) {
-      setVideoError("Please enter a valid code.");
-      return;
-    }
+  // Fetch playlists automatically on component mount using the hardcoded backend code
+  useEffect(() => {
+    const fetchPlaylists = async () => {
+      setIsFetchingPlaylists(true);
+      try {
+        const playlistResponse = await axios.post(
+          `https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net/get-playlists`, 
+          { userCode: HARDCODED_ACCESS_CODE }
+        );
+        console.log(playlistResponse.data);
+        setPlaylists(playlistResponse.data);
+      } catch (err) {
+        console.error("Failed to auto-load playlists:", err);
+      } finally {
+        setIsFetchingPlaylists(false);
+      }
+    };
 
-    setVideoError('');
-    setIsFetchingVideo(true); // Turn loading on
+    fetchPlaylists();
+  }, []);
+
+  // Fetch live stream on-demand via the manual access code input
+  // Fetch live stream on-demand via the manual access code input
+const getVideo = async (e) => {
+  if (e) e.preventDefault();
+  if (!userCode.trim()) {
+    setVideoError("Please enter a valid code.");
+    return;
+  }
+
+  setVideoError('');
+  setIsFetchingVideo(true);
+
+  try {
+    // Fetch live video data
+    const liveResponse = await axios.get(
+      `https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net/api/live`
+    );
+    
+    const data = liveResponse.data;
+    console.log(data);
+
+    // Check playbackUrl (falling back to url if playbackUrl isn't present)
+    const targetUrl = data?.playbackUrl || data?.url;
+
+    if (data && targetUrl) {
+      const isM3u8 = targetUrl.includes('.m3u8');
+      const videoIdMatch = targetUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^& \n]+)/);
+      const embedId = videoIdMatch ? videoIdMatch[1] : null;
+
+      const liveStreamObj = {
+        title: data.title || "Live Stream",
+        url: targetUrl,
+        embedId: embedId,
+        isM3u8: isM3u8,
+        isLive: true 
+      };
+
+      setVideoData(liveStreamObj);
+      setLiveVideoData(liveStreamObj); 
+    } else {
+      setVideoError("No live playback URL found.");
+    }
+  } catch(err) {
+    console.error(err);
+    setVideoError("Failed to fetch stream data. Verify your code.");
+    setVideoData(null);
+    setLiveVideoData(null);
+  } finally {
+    setIsFetchingVideo(false);
+  }
+};
+
+  // Fetch videos inside a playlist when clicked (uses the hardcoded code)
+  const handlePlaylistClick = async (playlistId) => {
+    setSelectedPlaylistId(playlistId);
+    setIsFetchingPlaylists(true);
     try {
       const response = await axios.post(
-        `https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net/get-latest-live`, { userCode }
+        `https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net/get-playlist-videos`, 
+        { userCode: HARDCODED_ACCESS_CODE, playlistId }
       );
-      
-      const data = response.data;
-      if (data && data.url) {
-        const videoIdMatch = data.url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^& \n]+)/);
-        const embedId = videoIdMatch ? videoIdMatch[1] : null;
-
-        setVideoData({
-          title: data.title,
-          url: data.url,
-          embedId: embedId
-        });
-      }
-    } catch(err) {
+      setPlaylistVideos(response.data);
+    } catch (err) {
       console.error(err);
-      setVideoError("Failed to fetch stream data. Verify your code.");
-      setVideoData(null);
+      setVideoError("Failed to load playlist videos.");
     } finally {
-      setIsFetchingVideo(false); // Turn loading off when network request finishes
+      setIsFetchingPlaylists(false);
     }
-  }
+  };
+
+  // Switch player focus to an archived video
+  const selectArchiveVideo = (video) => {
+    setVideoData({
+      title: video.title,
+      url: video.url,
+      embedId: video.id,
+      isLive: false
+    });
+    document.getElementById('video-player-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Reverts the player to show the live stream backup
+  const switchToLiveStream = () => {
+    if (liveVideoData) {
+      setVideoData(liveVideoData);
+    }
+  };
 
   const heroSlides = [
     { img: 'churchImages/churchInside.webp', text: "Seeing and Savoring Jesus Christ" },
@@ -89,6 +173,7 @@ export default function App() {
     },
   ];
 
+  // Fetch PDFs
   useEffect(() => {
     const fetchPDFs = async () => {
       try {
@@ -96,14 +181,15 @@ export default function App() {
         const res = await listAll(listRef);
         
         const today = new Date();
-        const currentDay = today.getDay(); 
+        const currentDay = today.getDay(); // 0: Sun, 1: Mon, 2: Tue, ...
         
+        // Calculate start of Monday in local time
         const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
-        
         const startOfMonday = new Date(today);
         startOfMonday.setDate(today.getDate() - daysSinceMonday);
         startOfMonday.setHours(0, 0, 0, 0);
 
+        // Map day 1-5 (Mon-Fri). On weekends (0 or 6), allow all 5 days.
         const maxAllowedDay = (currentDay === 0 || currentDay === 6) ? 5 : currentDay;
 
         const filePromises = res.items.map(async (itemRef) => {
@@ -128,8 +214,12 @@ export default function App() {
         const allFiles = await Promise.all(filePromises);
 
         const visibleFiles = allFiles.filter(file => {
-          const isThisWeek = file.timeCreated >= startOfMonday;
+          // Add a 12-hour buffer to startOfMonday to protect against UTC/time zone differences
+          const mondayThreshold = new Date(startOfMonday.getTime() - 12 * 60 * 60 * 1000);
+          
+          const isThisWeek = file.timeCreated >= mondayThreshold;
           const isNotFutureDay = file.dayNumber <= maxAllowedDay;
+          
           return isThisWeek && isNotFutureDay;
         });
 
@@ -284,14 +374,14 @@ export default function App() {
         </div>
       </section>
 
-      {/* IMPROVED RESPONSIVE RESOURCES & WATCH LIVE SECTION */}
+      {/* RESOURCES & WATCH LIVE SECTION */}
       <section id="resources" className="py-24 bg-slate-100 border-t border-gray-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-[#7bb0e0] font-bold tracking-widest uppercase text-sm mb-3">Downloads & Guides</h2>
             <h3 className="text-3xl font-extrabold text-gray-800 tracking-tight mb-6">Church Resources</h3>
             
-            {/* RESPONSIVE CODE INPUT INTERFACE */}
+            {/* LIVE STREAM CODE INTERFACE */}
             <div className="max-w-md mx-auto bg-white p-5 sm:p-6 rounded-xl shadow-md border border-gray-100 mb-8">
               <h4 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide">Live Stream Access</h4>
               <form onSubmit={getVideo} className="flex flex-col sm:flex-row gap-2.5">
@@ -311,7 +401,7 @@ export default function App() {
                   {isFetchingVideo ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   ) : (
-                    "Watch Live"
+                    "Load Live Stream"
                   )}
                 </button>
               </form>
@@ -319,33 +409,139 @@ export default function App() {
             </div>
 
             {/* VIDEO PLAYER COMPONENT WITH LOADING TRANSITION */}
-            {isFetchingVideo ? (
-              <div className="flex flex-col justify-center items-center h-48 max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 mb-12 px-4">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#7bb0e0] mb-3"></div>
-                <p className="text-sm text-gray-500 font-medium text-center">Fetching live stream broadcast...</p>
-              </div>
-            ) : (
-              videoData && (
-                <div className="max-w-3xl mx-auto bg-white p-3 sm:p-4 rounded-xl shadow-lg border border-gray-100 mb-12 text-left">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 px-1">{videoData.title}</h3>
-                  {videoData.embedId ? (
-                    <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-inner bg-black">
-                      <iframe
-                        className="absolute top-0 left-0 w-full h-full"
-                        src={`https://www.youtube.com/embed/${videoData.embedId}`}
-                        title={videoData.title}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                      ></iframe>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 p-1">
-                      Could not load player. <a href={videoData.url} target="_blank" rel="noreferrer" className="text-blue-500 underline">Click here to watch on YouTube</a>.
-                    </p>
+            {/* VIDEO PLAYER COMPONENT WITH LOADING TRANSITION */}
+{/* VIDEO PLAYER COMPONENT */}
+<div id="video-player-section">
+  {isFetchingVideo ? (
+    <div className="flex flex-col justify-center items-center h-48 max-w-5xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 mb-12 px-4">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#7bb0e0] mb-3"></div>
+      <p className="text-sm text-gray-500 font-medium text-center">Fetching live stream broadcast...</p>
+    </div>
+  ) : (
+    videoData && (
+      <div className="max-w-5xl mx-auto bg-white p-3 sm:p-4 rounded-xl shadow-lg border border-gray-100 mb-12 text-left">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 px-1">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 leading-tight">
+            {videoData.title} {videoData.isLive && <span className="ml-1 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-extrabold tracking-wide uppercase align-middle">Most Recent</span>}
+          </h3>
+          {!videoData.isLive && liveVideoData && (
+            <button 
+              onClick={switchToLiveStream}
+              className="text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg transition-colors shadow-sm self-start sm:self-center flex items-center gap-1 flex-shrink-0"
+            >
+              📺 Return to Most Recent
+            </button>
+          )}
+        </div>
+
+        <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-inner bg-black">
+          {videoData.isM3u8 ? (
+            /* Render HLS Player for .m3u8 files */
+            <HlsPlayer src={videoData.url} title={videoData.title} />
+          ) : videoData.embedId ? (
+            /* Render Youtube iframe */
+            <iframe
+              className="absolute top-0 left-0 w-full h-full"
+              src={`https://www.youtube.com/embed/${videoData.embedId}`}
+              title={videoData.title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            ></iframe>
+          ) : (
+            /* Fallback link */
+            <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+              <p className="text-sm text-gray-300 mb-2">Unable to embed this stream type directly.</p>
+              <a href={videoData.url} target="_blank" rel="noreferrer" className="text-blue-400 underline text-sm">
+                Open stream in new tab
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  )}
+</div>
+
+            {/* PLAYLIST ARCHIVE BROWSING COMPONENT */}
+            {playlists.length > 0 && (
+              <div className="max-w-5xl mx-auto mt-12 p-6 rounded-2xl text-left">
+                <div className="flex items-center justify-between mb-6">
+                  {selectedPlaylistId && (
+                    <button 
+                      onClick={() => setSelectedPlaylistId(null)} 
+                      className="text-sm font-semibold text-[#7bb0e0] hover:text-[#5a8dbd] flex items-center gap-1 bg-slate-100 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      ← Back to Playlists
+                    </button>
                   )}
                 </div>
-              )
+
+                {isFetchingPlaylists ? (
+                  <div className="flex flex-col justify-center items-center h-32">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7bb0e0] mb-2"></div>
+                    <p className="text-xs text-gray-400">Loading videos...</p>
+                  </div>
+                ) : !selectedPlaylistId ? (
+                  /* Grid of Playlists */
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {playlists.map((playlist) => {
+                      const isJesusBetter = playlist.title === "JESUS Is Better";
+                      return (
+                        <div 
+                          key={playlist.id} 
+                          onClick={() => handlePlaylistClick(playlist.id)}
+                          className={`rounded-xl overflow-hidden cursor-pointer transition-all flex flex-col ${
+                            isJesusBetter 
+                              ? "border-none shadow-none bg-transparent" 
+                              : "border border-gray-100 shadow-sm hover:shadow-md hover:border-[#7bb0e0] bg-slate-50/50"
+                          }`}
+                        >
+                          {(playlist.thumbnail || isJesusBetter) && (
+                            <div className="overflow-hidden rounded-xl w-full aspect-video">
+                              <img 
+                                src={isJesusBetter ? "churchImages/JesusIsBetter.png" : playlist.thumbnail} 
+                                alt={playlist.title} 
+                                className={`w-full h-full object-cover transition-transform duration-300 ${
+                                  isJesusBetter ? "scale-110 hover:scale-115" : ""
+                                }`} 
+                              />
+                            </div>
+                          )}
+                          <div className={`flex-grow flex flex-col justify-between ${isJesusBetter ? "pt-4 px-0 pb-2" : "p-4"}`}>
+                            <h4 className={`font-bold text-gray-800 line-clamp-2 ${isJesusBetter ? "text-lg" : "text-base"}`}>
+                              {playlist.title}
+                            </h4>
+                            <p className="text-xs text-gray-400 mt-2 font-medium uppercase tracking-wider">View Collection →</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* List of Videos in Selected Playlist */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {playlistVideos.map((video) => (
+                      <div 
+                        key={video.id}
+                        onClick={() => selectArchiveVideo(video)}
+                        className="flex gap-3 border border-gray-100 rounded-xl p-2 hover:border-[#7bb0e0] hover:bg-slate-50 cursor-pointer transition-all"
+                      >
+                        {video.thumbnail && (
+                          <img src={video.thumbnail} alt={video.title} className="w-24 aspect-video object-cover rounded-md flex-shrink-0" />
+                        )}
+                        <div className="flex flex-col justify-center min-w-0">
+                          <h4 className="font-bold text-gray-800 text-xs sm:text-sm line-clamp-2 leading-tight">{video.title}</h4>
+                          <span className="text-[10px] text-blue-500 font-semibold mt-1">Click to play video</span>
+                        </div>
+                      </div>
+                    ))}
+                    {playlistVideos.length === 0 && (
+                      <p className="text-sm text-gray-400 italic">No videos found in this playlist.</p>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -444,7 +640,7 @@ export default function App() {
           </form>
         </div>
       </section>
-      <Footer/>
+      <Footer/> 
     </div>
   );
 }
