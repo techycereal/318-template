@@ -129,7 +129,7 @@ export function DevotionalHeader({ metadata }) {
             <div className="mb-7 text-center">
 
                 <img
-                    src="/logo.png"
+                    src="/churchImages/logoDevo.png"
                     alt="3:18 Bible Church"
                     className="mx-auto mb-5 h-auto w-[140px]"
                 />
