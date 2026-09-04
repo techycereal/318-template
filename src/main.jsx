@@ -11,8 +11,8 @@ import Kids from './components/Kids.jsx'
 import Privacy from './components/Privacy.js'
 import Terms from './components/Terms.js'
 import Support from './components/Support.js'
-import DailyDevotional from './components/Devotional.js'
 import PlaylistPage from './components/PlaylistPage.jsx'
+import { DevotionalPage } from './components/DevotionalPage.jsx'
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <ScrollToTop /> {/* 👈 Add this here */}
@@ -27,8 +27,8 @@ createRoot(document.getElementById('root')).render(
       <Route path='/privacy' element={<Privacy />} />
       <Route path='/terms' element={<Terms />} />
       <Route path='/support' element={<Support />} />
-      <Route path='/devotional' element={<DailyDevotional />} />
       <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
+      <Route path="/devotional" element={<DevotionalPage />} />
     </Routes>
 
   </BrowserRouter>
