@@ -9,6 +9,7 @@ import Footer from "./components/Footer";
 import HlsPlayer from "./components/HlsPlayer";
 
 const HARDCODED_ACCESS_CODE = "31800";
+const API_BASE_URL = "https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net";
 
 export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -20,9 +21,9 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- Playlists State ---
-  const [playlists, setPlaylists] = useState([]);
-  const [isFetchingPlaylists, setIsFetchingPlaylists] = useState(false);
+  // --- Flattened Sermons State ---
+  const [sermons, setSermons] = useState([]);
+  const [isFetchingSermons, setIsFetchingSermons] = useState(false);
 
   // --- Contact Form State ---
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
@@ -48,24 +49,48 @@ export default function App() {
     }
   }, [location.state]);
 
-  // Fetch all playlists automatically on mount
+  // Fetch all playlists and extract all sermons into a flat list
   useEffect(() => {
-    const fetchPlaylists = async () => {
-      setIsFetchingPlaylists(true);
+    const fetchAllSermons = async () => {
+      setIsFetchingSermons(true);
       try {
+        // 1. Fetch playlists
         const playlistResponse = await axios.post(
-          `https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net/get-playlists`, 
+          `${API_BASE_URL}/get-playlists`, 
           { userCode: HARDCODED_ACCESS_CODE }
         );
-        setPlaylists(playlistResponse.data);
+        const fetchedPlaylists = playlistResponse.data || [];
+
+        // 2. Fetch videos for each playlist in parallel
+        const videoPromises = fetchedPlaylists.map(async (playlist) => {
+          try {
+            const res = await axios.post(`${API_BASE_URL}/get-playlist-videos`, {
+              playlistId: playlist.id,
+              userCode: HARDCODED_ACCESS_CODE
+            });
+            const items = res.data?.items || res.data || [];
+            return items.map((item) => ({
+              ...item,
+              playlistTitle: playlist.title,
+              thumbnail: item.thumbnail || playlist.thumbnail
+            }));
+          } catch (e) {
+            console.error(`Failed to load videos for playlist ${playlist.id}:`, e);
+            return [];
+          }
+        });
+
+        const nestedSermons = await Promise.all(videoPromises);
+        const flatSermons = nestedSermons.flat();
+        setSermons(flatSermons);
       } catch (err) {
-        console.error("Failed to auto-load playlists:", err);
+        console.error("Failed to auto-load sermons:", err);
       } finally {
-        setIsFetchingPlaylists(false);
+        setIsFetchingSermons(false);
       }
     };
 
-    fetchPlaylists();
+    fetchAllSermons();
   }, []);
 
   // Fetch live stream on-demand
@@ -80,9 +105,7 @@ export default function App() {
     setIsFetchingVideo(true);
 
     try {
-      const liveResponse = await axios.get(
-        `https://church-app-back-gwhxbadse8htcabx.centralus-01.azurewebsites.net/api/live`
-      );
+      const liveResponse = await axios.get(`${API_BASE_URL}/api/live`);
       
       const data = liveResponse.data;
       const targetUrl = data?.playbackUrl || data?.url;
@@ -115,9 +138,15 @@ export default function App() {
     }
   };
 
-  // Navigates to the dynamic playlist route
-  const handlePlaylistClick = (playlistId) => {
-    navigate(`/playlist/${playlistId}`);
+  const selectSermon = (sermon) => {
+    setVideoData({
+      title: sermon.title,
+      url: sermon.url,
+      embedId: sermon.id || sermon.embedId,
+      isLive: false,
+      thumbnail: sermon.thumbnail || "churchImages/JesusIsBetter.png"
+    });
+    document.getElementById('video-player-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const switchToLiveStream = () => {
@@ -431,52 +460,48 @@ export default function App() {
               )}
             </div>
 
-            {/* ALL PLAYLISTS GRID */}
-            {playlists.length > 0 && (
-              <div className="max-w-5xl mx-auto mt-12 p-6 rounded-2xl text-left">
-                {isFetchingPlaylists ? (
-                  <div className="flex flex-col justify-center items-center h-32">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7bb0e0] mb-2"></div>
-                    <p className="text-xs text-gray-400">Loading playlists...</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {playlists.map((playlist) => {
-                      const isJesusBetter = playlist.title === "JESUS Is Better";
-                      return (
-                        <div 
-                          key={playlist.id} 
-                          onClick={() => handlePlaylistClick(playlist.id)}
-                          className={`rounded-xl overflow-hidden cursor-pointer transition-all flex flex-col ${
-                            isJesusBetter 
-                              ? "border-none shadow-none bg-transparent" 
-                              : "border border-gray-100 shadow-sm hover:shadow-md hover:border-[#7bb0e0] bg-slate-50/50"
-                          }`}
-                        >
-                          {(playlist.thumbnail || isJesusBetter) && (
-                            <div className="overflow-hidden rounded-xl w-full aspect-video">
-                              <img 
-                                src={isJesusBetter ? "churchImages/JesusIsBetter.png" : playlist.thumbnail} 
-                                alt={playlist.title} 
-                                className={`w-full h-full object-cover transition-transform duration-300 ${
-                                  isJesusBetter ? "scale-110 hover:scale-115" : ""
-                                }`} 
-                              />
-                            </div>
-                          )}
-                          <div className={`flex-grow flex flex-col justify-between ${isJesusBetter ? "pt-4 px-0 pb-2" : "p-4"}`}>
-                            <h4 className={`font-bold text-gray-800 line-clamp-2 ${isJesusBetter ? "text-lg" : "text-base"}`}>
-                              {playlist.title}
-                            </h4>
-                            <p className="text-xs text-gray-400 mt-2 font-medium uppercase tracking-wider">View Collection →</p>
-                          </div>
+            {/* DIRECT ALL SERMONS LIST */}
+            <div className="max-w-5xl mx-auto mt-12 p-6 bg-white rounded-2xl shadow-md border border-gray-100 text-left">
+              <h3 className="text-xl font-bold text-gray-800 mb-6 border-b pb-3">All Sermons</h3>
+              
+              {isFetchingSermons ? (
+                <div className="flex flex-col justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7bb0e0] mb-2"></div>
+                  <p className="text-xs text-gray-400">Loading all sermons...</p>
+                </div>
+              ) : sermons.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No sermons available right now.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {sermons.map((sermon, idx) => (
+                    <div 
+                      key={sermon.id || idx}
+                      onClick={() => selectSermon(sermon)}
+                      className="flex gap-4 p-3 rounded-xl border border-gray-100 hover:border-[#7bb0e0] hover:shadow-md transition-all cursor-pointer bg-slate-50/50"
+                    >
+                      {sermon.thumbnail && (
+                        <img 
+                          src={sermon.thumbnail} 
+                          alt={sermon.title} 
+                          className="w-28 h-20 object-cover rounded-lg flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex flex-col justify-between overflow-hidden">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#7bb0e0]">
+                            {sermon.playlistTitle}
+                          </p>
+                          <h4 className="font-bold text-gray-800 text-sm line-clamp-2 mt-1">
+                            {sermon.title}
+                          </h4>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+                        <p className="text-xs text-gray-500 font-medium">▶ Play Sermon</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Resources PDF Downloads */}
@@ -489,7 +514,7 @@ export default function App() {
               No new resources have been posted for this week yet.
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-8">
               {resources.map((resource, index) => (
                 <a
                   key={index}

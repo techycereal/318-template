@@ -17,12 +17,14 @@ export function DevotionalPage() {
                 );
 
                 if (!response.ok) {
+                    console.log('test')
                     throw new Error("Failed to load devotional");
                 }
 
                 const data = await response.json();
                 console.log(data.data)
-                setDevotional(data.data.devotional);
+                console.log(data.data.devotional)
+                setDevotional(data.data);
             } catch (err) {
                 console.error(err);
                 setError("Unable to load today's devotional.");
@@ -33,7 +35,7 @@ export function DevotionalPage() {
 
         loadDevotional();
     }, []);
-
+    console.log(loading)
     if (loading) {
         return (
             <div className="min-h-screen bg-[#f3f7fa] px-5 py-12">
@@ -51,9 +53,9 @@ export function DevotionalPage() {
                 </div>
             </div>
         );
-    }
-
-    if (error || !devotional) {
+    } 
+     if (error || !devotional) {
+        console.log(devotional)
         return (
             <div className="min-h-screen bg-[#f3f7fa] px-5 py-12">
                 <div className="mx-auto max-w-4xl rounded-2xl border border-red-100 bg-white p-8 text-center">
