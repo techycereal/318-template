@@ -17,13 +17,10 @@ export function DevotionalPage() {
                 );
 
                 if (!response.ok) {
-                    console.log('test')
                     throw new Error("Failed to load devotional");
                 }
 
                 const data = await response.json();
-                console.log(data.data)
-                console.log(data.data.devotional)
                 setDevotional(data.data);
             } catch (err) {
                 console.error(err);
@@ -35,7 +32,7 @@ export function DevotionalPage() {
 
         loadDevotional();
     }, []);
-    console.log(loading)
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#f3f7fa] px-5 py-12">
@@ -53,9 +50,9 @@ export function DevotionalPage() {
                 </div>
             </div>
         );
-    } 
-     if (error || !devotional) {
-        console.log(devotional)
+    }
+
+    if (error || !devotional) {
         return (
             <div className="min-h-screen bg-[#f3f7fa] px-5 py-12">
                 <div className="mx-auto max-w-4xl rounded-2xl border border-red-100 bg-white p-8 text-center">
@@ -70,10 +67,13 @@ export function DevotionalPage() {
     return (
         <div className="min-h-screen bg-[#f3f7fa] px-5 py-8 sm:px-8 sm:py-12 lg:px-12">
             <article className="mx-auto w-full max-w-4xl">
-                {console.log(devotional)}
                 <DevotionalHeader metadata={devotional.metadata} />
 
                 <ReadingBox readings={devotional.reading} />
+
+                {devotional.recap?.paragraphs?.length > 0 && (
+                    <RecapBox data={devotional.recap} />
+                )}
 
                 <main className="space-y-8">
                     {devotional.content?.map((block, index) => (
@@ -88,11 +88,11 @@ export function DevotionalPage() {
                     <BigShift data={devotional.bigShift} />
                 )}
 
-                {devotional.therefore && (
+                {devotional.therefore?.length > 0 && (
                     <Therefore items={devotional.therefore} />
                 )}
 
-                {devotional.conclusion && (
+                {devotional.conclusion?.text && (
                     <section className="mt-10">
                         <p className="text-[17px] leading-[1.85] text-[#2d3748]">
                             {devotional.conclusion.text}
@@ -100,11 +100,11 @@ export function DevotionalPage() {
                     </section>
                 )}
 
-                {devotional.reflection && (
+                {devotional.reflection?.questions?.length > 0 && (
                     <Reflection data={devotional.reflection} />
                 )}
 
-                {devotional.familyWorship && (
+                {devotional.familyWorship?.steps?.length > 0 && (
                     <FamilyWorship data={devotional.familyWorship} />
                 )}
 
@@ -135,7 +135,7 @@ export function DevotionalHeader({ metadata }) {
                     alt="3:18 Bible Church"
                     className="mx-auto mb-5 h-auto w-[140px]"
                 />
-                {console.log(metadata)}
+
                 {metadata.date && (
                     <p className="text-[11px] font-extrabold uppercase tracking-[3px] text-[#7db0db]">
                         {metadata.date}
@@ -176,7 +176,7 @@ export function DevotionalHeader({ metadata }) {
 
 export function ReadingBox({ readings }) {
     return (
-        <section className="mb-10 rounded-xl bg-[#f8fafc] px-5 py-5 ring-1 ring-[#e9eef3] sm:px-6">
+        <section className="mb-8 rounded-xl bg-[#f8fafc] px-5 py-5 ring-1 ring-[#e9eef3] sm:px-6">
 
             <div className="flex items-start gap-3">
 
@@ -203,6 +203,43 @@ export function ReadingBox({ readings }) {
                     </div>
                 </div>
 
+            </div>
+
+        </section>
+    );
+}
+
+
+/* =========================================================
+   RECAP BOX
+========================================================= */
+
+export function RecapBox({ data }) {
+    const formatRecapParagraph = (text) => {
+        const match = text.match(/^(In Day \d+,|Now Day \d+[^.]*\.)\s*(.*)$/i);
+        if (!match) return text;
+
+        return (
+            <>
+                <strong className="font-bold text-[#234973]">{match[1]}</strong>{" "}
+                {match[2]}
+            </>
+        );
+    };
+
+    return (
+        <section className="mb-10 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-6 sm:p-8">
+
+            <h2 className="mb-3 text-[21px] font-extrabold tracking-[-0.3px] text-[#234973]">
+                {data.title || "Recap"}
+            </h2>
+
+            <div className="space-y-3.5 text-[15.5px] leading-[1.75] text-[#4a5568]">
+                {data.paragraphs?.map((paragraph, index) => (
+                    <p key={index}>
+                        {formatRecapParagraph(paragraph)}
+                    </p>
+                ))}
             </div>
 
         </section>
@@ -240,6 +277,17 @@ export function ContentBlock({ block }) {
                 <p className="text-[18px] font-bold leading-[1.7] text-[#234973]">
                     {block.text}
                 </p>
+            );
+
+
+        case "therefore_bullet":
+            return (
+                <div className="flex items-start gap-4">
+                    <span className="mt-[8px] h-2.5 w-2.5 shrink-0 rounded-[3px] bg-[#7db0db]" />
+                    <p className="text-[17px] leading-[1.8] text-[#2d3748]">
+                        {block.text}
+                    </p>
+                </div>
             );
 
 
@@ -429,9 +477,6 @@ export function Reflection({ data }) {
 /* =========================================================
    FAMILY WORSHIP
 ========================================================= */
-/* =========================================================
-   FAMILY WORSHIP
-========================================================= */
 
 export function FamilyWorship({ data }) {
     return (
@@ -554,4 +599,3 @@ export function FamilyWorship({ data }) {
         </section>
     );
 }
-
